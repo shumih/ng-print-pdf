@@ -7,7 +7,7 @@
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
-      "prefix": "app",
+      "prefix": "ng",
       "schematics": {
         "@schematics/angular:component": {
           "style": "scss"
@@ -128,6 +128,41 @@
           "builder": "@angular-devkit/build-angular:tslint",
           "options": {
             "tsConfig": "e2e/tsconfig.e2e.json",
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
+    },
+    "ng-print-pdf-lib": {
+      "root": "projects/ng-print-pdf-lib",
+      "sourceRoot": "projects/ng-print-pdf-lib/src",
+      "projectType": "library",
+      "prefix": "ng",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-ng-packagr:build",
+          "options": {
+            "tsConfig": "projects/ng-print-pdf-lib/tsconfig.lib.json",
+            "project": "projects/ng-print-pdf-lib/ng-package.json"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/ng-print-pdf-lib/src/test.ts",
+            "tsConfig": "projects/ng-print-pdf-lib/tsconfig.spec.json",
+            "karmaConfig": "projects/ng-print-pdf-lib/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/ng-print-pdf-lib/tsconfig.lib.json",
+              "projects/ng-print-pdf-lib/tsconfig.spec.json"
+            ],
             "exclude": [
               "**/node_modules/**"
             ]

@@ -17,6 +17,14 @@
     "lib": [
       "es2018",
       "dom"
-    ]
+    ],
+    "paths": {
+      "ng-print-pdf-lib": [
+        "dist/ng-print-pdf-lib"
+      ],
+      "ng-print-pdf-lib/*": [
+        "dist/ng-print-pdf-lib/*"
+      ]
+    }
   }
 }
