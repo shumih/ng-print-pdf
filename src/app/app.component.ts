@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { PrintPdfService } from '../../projects/ng-print-pdf-lib/src/lib/print-pdf.service';
+import { PrintPdfService } from '../../projects/ng-print-pdf/src/lib/print-pdf.service';
 
 @Component({
   selector: 'app-root',

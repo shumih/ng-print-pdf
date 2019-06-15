@@ -1,15 +1,14 @@
 {
   "name": "ng-print-pdf",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
-    "test": "ng test",
-    "lint": "ng lint",
-    "e2e": "ng e2e"
+    "pack": "npm run build_lib && npm run pack_lib",
+    "build_lib": "ng build ng-print-pdf",
+    "pack_lib": "cd dist/ng-print-pdf && npm pack"
   },
-  "private": true,
+  "private": false,
   "dependencies": {
     "@angular/animations": "~7.2.0",
     "@angular/common": "~7.2.0",
