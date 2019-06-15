@@ -1,27 +1,20 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-
 import { Injectable } from '@angular/core';
 import { getDocument, PDFPageProxy } from 'pdfjs-dist';
 import { DEFAULT_PRINT_PDF_PARAMS, PrintPdfInterface } from '../models';
-import { browser, normalizeRotationProperty, hideEl } from '../helpers';
+import { browser, normalizeRotationProperty, hideEl, blobToArrayBuffer } from '../helpers';
 
 @Injectable()
 export class PrintPdfService {
   private pageStyleSheet: HTMLStyleElement | null = null;
 
-  constructor(private http: HttpClient) {}
-
-  public async printDocument(src: string, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
+  public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
 
     this.beforePrint(params);
 
     if (browser.isIE) {
-      this.printDocumentForIE(src, params);
+      this.printDocumentForIE(blob, params);
     } else {
-      const headers = new HttpHeaders({ 'Content-Type': 'application/pdf' });
-
-      const blob = await this.http.get(src, { responseType: 'blob', observe: 'body', headers }).toPromise();
       const objectURL = URL.createObjectURL(blob);
 
       await this.printDocumentForOtherBrowsers(objectURL, params);
@@ -36,11 +29,46 @@ export class PrintPdfService {
     }
   }
 
-  private async printDocumentForIE(src: string, params: PrintPdfInterface): Promise<void> {
-    const { printResolution, rotation, scale } = params;
-    const canvas = document.createElement('canvas');
-    const doc = await getDocument(src).promise;
-    const page = await doc.getPage(1);
+  private async printDocumentForIE(blob: Blob, params: PrintPdfInterface): Promise<void> {
+    const data = (await blobToArrayBuffer(blob)) as any;
+    const doc = await getDocument(data).promise;
+    const container = document.createElement('div');
+
+    const heights: number[] = [];
+    const widths: number[] = [];
+
+    for (let i = 1; i <= doc.numPages; i++) {
+      const canvas = document.createElement('canvas');
+      const page = await doc.getPage(i);
+      const pdfItem = await this.createPrintPdfItem(page, canvas, params);
+      container.appendChild(pdfItem);
+
+      const [_, __, pageWidth, pageHeight] = page.view;
+      heights.push(pageHeight);
+      widths.push(pageWidth);
+
+      setTimeout(() => canvas.remove());
+    }
+
+    const iframe = document.createElement('iframe');
+    hideEl(iframe);
+    document.body.appendChild(iframe);
+
+    if (this.pageStyleSheet) {
+      this.pageStyleSheet.remove();
+    }
+
+    this.pageStyleSheet = this.getStyleSheet(Math.max(...widths), Math.max(...heights));
+    iframe.contentWindow.document.body.appendChild(this.pageStyleSheet);
+    iframe.contentWindow.document.body.appendChild(container);
+    setTimeout(() => this.performPrint(iframe));
+  }
+
+  private async createPrintPdfItem(
+    page: PDFPageProxy,
+    canvas: HTMLCanvasElement,
+    { useCanvasToDataUrl, cssUnits, printResolution, rotation, scale }: PrintPdfInterface
+  ): Promise<HTMLDivElement> {
     const [_, __, pageWidth, pageHeight] = page.view;
 
     const printUnits = printResolution / 72.0;
@@ -62,34 +90,6 @@ export class PrintPdfService {
     };
 
     await page.render(renderContext).promise;
-    const pdfItem = await this.createPrintPdfItem(canvas, page, params);
-    const wrapper = document.createElement('div');
-    // wrapper.setAttribute('style', 'display: flex;justify-content: center;align-items: center');
-    // wrapper.setAttribute('width', '100vw');
-    // wrapper.setAttribute('height', '100vh');
-    wrapper.appendChild(pdfItem);
-
-    const iframe = document.createElement('iframe');
-    hideEl(iframe);
-    document.body.appendChild(iframe);
-
-    if (this.pageStyleSheet) {
-      this.pageStyleSheet.remove();
-    }
-
-    this.pageStyleSheet = this.getStyleSheet(pageWidth, pageHeight);
-    iframe.contentWindow.document.body.appendChild(this.pageStyleSheet);
-    iframe.contentWindow.document.body.appendChild(pdfItem);
-    setTimeout(() => this.performPrint(iframe));
-    setTimeout(() => canvas.remove());
-  }
-
-  private async createPrintPdfItem(
-    canvas: HTMLCanvasElement,
-    page: PDFPageProxy,
-    { useCanvasToDataUrl, cssUnits }: PrintPdfInterface
-  ): Promise<HTMLDivElement> {
-    const [_, __, pageWidth, pageHeight] = page.view;
 
     const width = Math.floor(pageWidth * cssUnits) + 'px';
     const height = Math.floor(pageHeight * cssUnits) + 'px';
@@ -138,8 +138,7 @@ export class PrintPdfService {
   private getStyleSheet(pageWidth: number, pageHeight: number): HTMLStyleElement {
     const pageStyleSheet = document.createElement('style');
 
-    pageStyleSheet.textContent =
-      `@supports ((size:A4) and (size:1pt 1pt)) {
+    pageStyleSheet.textContent = `@supports ((size:A4) and (size:1pt 1pt)) {
         @page { size: ${pageWidth}pt ${pageHeight}pt;}
       };`;
 

@@ -15,3 +15,14 @@ export function normalizeRotationProperty(rotate: number): number {
 export function hideEl(el: HTMLElement): void {
   el.setAttribute('style', 'visibility: hidden; position: absolute;');
 }
+
+export function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  const reader = new FileReader();
+
+  return new Promise((resolve, reject) => {
+    reader.addEventListener('error', reject);
+    reader.addEventListener('loadend', event => resolve(event.target['result']));
+
+    reader.readAsArrayBuffer(blob);
+  });
+}
