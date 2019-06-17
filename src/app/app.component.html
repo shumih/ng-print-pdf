@@ -1,3 +1,3 @@
 <div>
-  <button type="button" (click)="handleClick()">PRINT IE</button>
+  <button type="button" (click)="handleClick()" [disabled]="printService.inProcess$ | async">PRINT IE</button>
 </div>
