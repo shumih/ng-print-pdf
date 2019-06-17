@@ -14,6 +14,6 @@ export class AppComponent {
     const headers = new HttpHeaders({ 'Content-Type': 'application/pdf' });
 
     const blob = await this.http.get('assets/f.pdf', { responseType: 'blob', observe: 'body', headers }).toPromise();
-    this.printService.printDocument(blob, {}, true);
+    this.printService.printDocument(blob, {});
   }
 }

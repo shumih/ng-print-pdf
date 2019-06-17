@@ -13,16 +13,12 @@ export class PrintPdfService {
 
   private inProcessSubject: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
-  public async printDocument(
-    blob: Blob,
-    externalParams: Partial<PrintPdfInterface> = {},
-    isIE: boolean
-  ): Promise<void> {
+  public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
 
     this.beforePrint(params);
 
-    if (browser.isIE || isIE) {
+    if (browser.isIE) {
       await this.printDocumentForIE(blob, params);
     } else {
       const objectURL = URL.createObjectURL(blob);
