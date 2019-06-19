@@ -1,8 +1,16 @@
 import { Injectable } from '@angular/core';
 import { getDocument, PDFPageProxy } from 'pdfjs-dist';
 import { DEFAULT_PRINT_PDF_PARAMS, PrintPdfInterface } from '../models';
-import { browser, normalizeRotationProperty, hideEl, blobToArrayBuffer } from '../helpers';
-import { BehaviorSubject, Observable, of, Subject } from 'rxjs';
+import {
+  browser,
+  normalizeRotationProperty,
+  createPrintFrame,
+  performPrint,
+  getPrintPageStyleSheet,
+  blobToArrayBuffer,
+  handlePrintEvents,
+} from '../helpers';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 @Injectable()
@@ -13,10 +21,12 @@ export class PrintPdfService {
 
   private inProcessSubject: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
+  constructor() {
+    handlePrintEvents(() => this.inProcessSubject.next(true), () => this.inProcessSubject.next(false));
+  }
+
   public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
-
-    this.beforePrint(params);
 
     if (browser.isIE) {
       await this.printDocumentForIE(blob, params);
@@ -24,21 +34,6 @@ export class PrintPdfService {
       const objectURL = URL.createObjectURL(blob);
 
       await this.printDocumentForOtherBrowsers(objectURL, params);
-    }
-
-    this.afterPrint(params);
-  }
-
-  private beforePrint(params: PrintPdfInterface): void {
-    this.inProcessSubject.next(true);
-  }
-
-  private afterPrint(params: PrintPdfInterface): void {
-    this.inProcessSubject.next(false);
-    const iframeEl = document.getElementById(params.iframeId);
-
-    if (iframeEl) {
-      iframeEl.remove();
     }
   }
 
@@ -63,16 +58,16 @@ export class PrintPdfService {
       setTimeout(() => canvas.remove());
     }
 
-    const iframe = this.createIframe(params);
+    const iframe = this.getPrintFrame(params);
     document.body.appendChild(iframe);
 
-    this.pageStyleSheet = this.getStyleSheet(Math.max(...widths), Math.max(...heights));
+    this.pageStyleSheet = getPrintPageStyleSheet(Math.max(...widths), Math.max(...heights));
     iframe.contentWindow.document.body.appendChild(this.pageStyleSheet);
     iframe.contentWindow.document.body.appendChild(container);
 
     return new Promise(resolve => {
       setTimeout(() => {
-        this.performPrint(iframe);
+        performPrint(params);
         resolve();
       });
     });
@@ -119,14 +114,6 @@ export class PrintPdfService {
     return img;
   }
 
-  private createIframe(params: PrintPdfInterface): HTMLIFrameElement {
-    const iframe = document.createElement('iframe');
-    iframe.setAttribute('id', params.iframeId);
-    hideEl(iframe);
-
-    return iframe;
-  }
-
   private getDataFromCanvas(canvas: HTMLCanvasElement, useCanvasToDataUrl: boolean): Promise<string> {
     if ('toBlob' in canvas && !useCanvasToDataUrl) {
       return new Promise(resolve => canvas.toBlob(blob => resolve(URL.createObjectURL(blob))));
@@ -135,49 +122,33 @@ export class PrintPdfService {
     }
   }
 
-  private printDocumentForOtherBrowsers(objectURL: string, { iframeId }: PrintPdfInterface): Promise<void> {
+  private printDocumentForOtherBrowsers(objectURL: string, params: PrintPdfInterface): Promise<void> {
     return new Promise(resolve => {
-      const printFrame = document.createElement('iframe');
-
-      hideEl(printFrame);
-      printFrame.setAttribute('id', iframeId);
+      const printFrame = this.getPrintFrame(params);
+      printFrame.setAttribute('type', 'application/pdf');
       printFrame.setAttribute('src', objectURL);
-
       document.body.appendChild(printFrame);
 
-      let iframeEl = document.getElementById(iframeId) as HTMLIFrameElement;
-      iframeEl.onload = () => {
-        this.performPrint(iframeEl);
+      printFrame.onload = () => {
+        performPrint(params);
 
         URL.revokeObjectURL(objectURL);
-        iframeEl = null;
-
-        setTimeout(resolve);
+        resolve();
       };
     });
   }
 
-  private getStyleSheet(pageWidth: number, pageHeight: number): HTMLStyleElement {
-    const pageStyleSheet = document.createElement('style');
+  private getPrintFrame(params: PrintPdfInterface): HTMLIFrameElement {
+    const existedPrintFrame = document.getElementById(params.iframeId) as HTMLIFrameElement | null;
 
-    pageStyleSheet.textContent = `@supports ((size:A4) and (size:1pt 1pt)) {
-        @page { size: ${pageWidth}pt ${pageHeight}pt;}
-      };`;
-
-    return pageStyleSheet;
-  }
-
-  private performPrint(iframeEl: HTMLIFrameElement) {
-    iframeEl.focus();
-
-    if (browser.isIE) {
-      try {
-        iframeEl.contentWindow.document.execCommand('print', false, null);
-      } catch (e) {
-        iframeEl.contentWindow.print();
-      }
-    } else {
-      iframeEl.contentWindow.print();
+    if (!existedPrintFrame) {
+      return createPrintFrame(params);
     }
+
+    existedPrintFrame.innerHTML = '';
+    existedPrintFrame.onload = null;
+    existedPrintFrame.setAttribute('src', null);
+
+    return existedPrintFrame;
   }
 }
