@@ -5,7 +5,7 @@ export const browser = {
   isIE: navigator.userAgent.indexOf('MSIE') !== -1 || !!document['documentMode'],
 };
 
-export function deffered<T>(fn: (...args: unknown[]) => PromiseLike<T>, ...args: unknown[]): PromiseLike<T> {
+export function deffer<T>(fn: (...args: unknown[]) => PromiseLike<T>, ...args: unknown[]): PromiseLike<T> {
   return new Promise(resolve => {
     requestAnimationFrame(async () => {
       resolve(await fn(...args));
@@ -52,8 +52,8 @@ export function performPrint(params: PrintPdfInterface): void {
 export function createPrintFrame(params: PrintPdfInterface): HTMLIFrameElement {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('id', params.iframeId);
-  iframe.setAttribute('height', '100%');
-  iframe.setAttribute('width', '100%');
+  // iframe.setAttribute('height', '100%');
+  // iframe.setAttribute('width', '100%');
   hideEl(iframe);
 
   return iframe;
@@ -83,7 +83,7 @@ export async function createPrintPdfItem(
     intent: 'print',
   };
 
-  await page.render(renderContext).promise;
+  await deffer<PDFPageProxy>(async () => await page.render(renderContext).promise);
 
   const wrapper = document.createElement('div');
   const img = document.createElement('img');
@@ -92,6 +92,7 @@ export async function createPrintPdfItem(
   img.setAttribute('src', await getDataFromCanvas(canvas, useCanvasToDataUrl));
   img.setAttribute('style', 'margin: auto; display: block;');
 
+  wrapper.setAttribute('style', 'margin: 4px; display: block;');
   wrapper.appendChild(img);
 
   await new Promise(resolve => (img.onload = resolve));
@@ -112,13 +113,6 @@ export function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
 
     reader.readAsArrayBuffer(blob);
   });
-}
-
-export function handlePrintEvents(onBefore?: () => void, onAfter?: () => void): void {
-  if (window.matchMedia) {
-    const mediaQueryList = window.matchMedia('print');
-    mediaQueryList.addListener(change => (change.matches ? onBefore && onBefore() : onAfter && onAfter()));
-  }
 }
 
 export function getDataFromCanvas(canvas: HTMLCanvasElement, useCanvasToDataUrl: boolean): Promise<string> {

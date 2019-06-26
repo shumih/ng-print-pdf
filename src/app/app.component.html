@@ -1,6 +1,14 @@
 <div class="wrapper">
-  <button type="button" (click)="handleClick('assets/huge.pdf')" [disabled]="printService.inProcess$ | async">PRINT</button>
-  <button type="button" (click)="handleIEClick('assets/huge.pdf')" [disabled]="printService.inProcess$ | async">PRINT IE</button>
-  <button type="button" (click)="handleIEClick('assets/p1.pdf')" [disabled]="printService.inProcess$ | async">PRINT IE FIRST</button>
-  <p *ngIf="printService.inProcess$ | async">...</p>
+  <button type="button" (click)="handleClick('assets/huge.pdf')">
+    PRINT
+  </button>
+  <button type="button" (click)="handleIEClick('assets/huge.pdf')">
+    PRINT IE
+  </button>
+  <button type="button" (click)="handleIEClick('assets/p1.pdf')">
+    PRINT IE FIRST
+  </button>
 </div>
+<progress *ngIf="printService.progress$ | async as progress" [value]="progress.index" [max]="progress.totalCount">{{
+  (progress.totalCount / progress.index).toFixed(2)
+}}</progress>

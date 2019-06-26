@@ -12,3 +12,8 @@ export interface PdfPageDimensions {
   width: number;
   height: number;
 }
+
+export interface PdfPrintProgressEvent {
+  index: number;
+  totalCount: number;
+}
