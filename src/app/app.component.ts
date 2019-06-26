@@ -10,8 +10,8 @@ import { HttpClient } from '@angular/common/http';
 export class AppComponent {
   constructor(public printService: PrintPdfService, private http: HttpClient) {}
 
-  public async handleClick(): Promise<void> {
-    const blob = await this.http.get('assets/p.pdf', { responseType: 'blob', observe: 'body' }).toPromise();
+  public async handleClick(path: string): Promise<void> {
+    const blob = await this.http.get(path, { responseType: 'blob', observe: 'body' }).toPromise();
 
     this.printService.printDocument(blob);
   }

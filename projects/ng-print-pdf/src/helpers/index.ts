@@ -18,9 +18,10 @@ export function normalizeRotationProperty(rotate: number): number {
 export function getPrintPageStyleSheet(pageWidth: number, pageHeight: number): HTMLStyleElement {
   const pageStyleSheet = document.createElement('style');
 
-  pageStyleSheet.textContent = `@supports ((size:A4) and (size:1pt 1pt)) {
-        @page { size: ${pageWidth}pt ${pageHeight}pt;}
-      };`;
+  pageStyleSheet.textContent += `
+    @supports ((size:A4) and (size:1pt 1pt)) {
+      @page { size: ${pageWidth}pt ${pageHeight}pt;}
+    };`;
 
   return pageStyleSheet;
 }
@@ -43,11 +44,51 @@ export function performPrint(params: PrintPdfInterface): void {
 export function createPrintFrame(params: PrintPdfInterface): HTMLIFrameElement {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('id', params.iframeId);
-  // iframe.setAttribute('height', '100%');
-  // iframe.setAttribute('width', '100%');
+  iframe.setAttribute('height', '100%');
+  iframe.setAttribute('width', '100%');
   hideEl(iframe);
 
   return iframe;
+}
+
+export async function createPrintPdfItem(
+  page: PDFPageProxy,
+  canvas: HTMLCanvasElement,
+  { width, height }: PdfPageDimensions,
+  { useCanvasToDataUrl, cssUnits, printResolution, rotation, scale }: PrintPdfInterface
+): Promise<HTMLDivElement> {
+  const printUnits = printResolution / 72.0;
+
+  const canvasWidth = (canvas.width = Math.floor(width * printUnits));
+  const canvasHeight = (canvas.height = Math.floor(height * printUnits));
+
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.fillStyle = 'rgb(255, 255, 255)';
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  ctx.restore();
+
+  const renderContext = {
+    canvasContext: ctx,
+    transform: [printUnits, 0, 0, printUnits, 0, 0],
+    viewport: page.getViewport(scale, normalizeRotationProperty(rotation)),
+    intent: 'print',
+  };
+
+  await page.render(renderContext).promise;
+
+  const wrapper = document.createElement('div');
+  const img = document.createElement('img');
+  img.setAttribute('width', Math.floor(width * cssUnits) + 'px');
+  img.setAttribute('height', Math.floor(height * cssUnits) + 'px');
+  img.setAttribute('src', await getDataFromCanvas(canvas, useCanvasToDataUrl));
+  img.setAttribute('style', 'margin: auto; display: block;');
+
+  wrapper.appendChild(img);
+
+  await new Promise(resolve => (img.onload = resolve));
+
+  return wrapper;
 }
 
 export function hideEl(el: HTMLElement): void {
@@ -87,7 +128,7 @@ export function getDimensionsAccordingToLayout(
   const [_, __, pageWidth, pageHeight] = page.view;
 
   switch (layout) {
-    case 'album': {
+    case 'landscape': {
       return pageWidth > pageHeight
         ? { width: pageWidth, height: pageHeight }
         : { width: pageHeight, height: pageWidth };
