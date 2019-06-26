@@ -3,7 +3,7 @@
   "version": "0.0.7",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --port 4100",
     "pack": "npm run build_lib && npm run pack_lib",
     "build_lib": "ng build ng-print-pdf",
     "pack_lib": "cd dist/ng-print-pdf && npm pack"
