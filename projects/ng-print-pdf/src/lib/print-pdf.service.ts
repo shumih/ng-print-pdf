@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { getDocument, PDFPageProxy } from 'pdfjs-dist';
-import { DEFAULT_PRINT_PDF_PARAMS, PrintPdfInterface } from '../models';
+import {DEFAULT_PRINT_PDF_PARAMS, PdfPageDimensions, PrintPdfInterface} from '../models';
 import {
   browser,
   normalizeRotationProperty,
@@ -8,7 +8,7 @@ import {
   performPrint,
   getPrintPageStyleSheet,
   blobToArrayBuffer,
-  handlePrintEvents,
+  handlePrintEvents, getDataFromCanvas, getDimensionsAccordingToLayout,
 } from '../helpers';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -48,12 +48,12 @@ export class PrintPdfService {
     for (let i = 1; i <= doc.numPages; i++) {
       const canvas = document.createElement('canvas');
       const page = await doc.getPage(i);
-      const pdfItem = await this.createPrintPdfItem(page, canvas, params);
+      const dimensions = getDimensionsAccordingToLayout(page, params.layout);
+      const pdfItem = await this.createPrintPdfItem(page, canvas, dimensions, params);
       container.appendChild(pdfItem);
 
-      const [_, __, pageWidth, pageHeight] = page.view;
-      heights.push(pageHeight);
-      widths.push(pageWidth);
+      heights.push(dimensions.height);
+      widths.push(dimensions.width);
 
       setTimeout(() => canvas.remove());
     }
@@ -76,14 +76,14 @@ export class PrintPdfService {
   private async createPrintPdfItem(
     page: PDFPageProxy,
     canvas: HTMLCanvasElement,
+    { width, height }: PdfPageDimensions,
     { useCanvasToDataUrl, cssUnits, printResolution, rotation, scale }: PrintPdfInterface
   ): Promise<HTMLDivElement> {
-    const [_, __, pageWidth, pageHeight] = page.view;
 
     const printUnits = printResolution / 72.0;
 
-    const canvasWidth = (canvas.width = Math.floor(pageWidth * printUnits));
-    const canvasHeight = (canvas.height = Math.floor(pageHeight * printUnits));
+    const canvasWidth = (canvas.width = Math.floor(width * printUnits));
+    const canvasHeight = (canvas.height = Math.floor(height * printUnits));
 
     const ctx = canvas.getContext('2d');
     ctx.save();
@@ -100,26 +100,15 @@ export class PrintPdfService {
 
     await page.render(renderContext).promise;
 
-    const width = Math.floor(pageWidth * cssUnits) + 'px';
-    const height = Math.floor(pageHeight * cssUnits) + 'px';
-
     const img = document.createElement('img') as HTMLImageElement;
-    img.setAttribute('width', width + 'px');
-    img.setAttribute('height', height + 'px');
-    img.setAttribute('src', await this.getDataFromCanvas(canvas, useCanvasToDataUrl));
+    img.setAttribute('width', Math.floor(width * cssUnits) + 'px');
+    img.setAttribute('height', Math.floor(height * cssUnits) + 'px');
+    img.setAttribute('src', await getDataFromCanvas(canvas, useCanvasToDataUrl));
     img.setAttribute('style', 'margin: auto;');
 
     await new Promise(resolve => (img.onload = resolve));
 
     return img;
-  }
-
-  private getDataFromCanvas(canvas: HTMLCanvasElement, useCanvasToDataUrl: boolean): Promise<string> {
-    if ('toBlob' in canvas && !useCanvasToDataUrl) {
-      return new Promise(resolve => canvas.toBlob(blob => resolve(URL.createObjectURL(blob))));
-    } else {
-      return Promise.resolve(canvas['toDataURL']());
-    }
   }
 
   private printDocumentForOtherBrowsers(objectURL: string, params: PrintPdfInterface): Promise<void> {

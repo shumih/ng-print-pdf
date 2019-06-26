@@ -7,4 +7,5 @@ export const DEFAULT_PRINT_PDF_PARAMS: PrintPdfInterface = {
   scale: 1,
   cssUnits: 96.0 / 72.0,
   useCanvasToDataUrl: true,
+  layout: undefined
 };

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { PrintPdfService } from '../../projects/ng-print-pdf/src/lib/print-pdf.service';
-import {HttpClient, HttpHeaders} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
@@ -11,9 +11,22 @@ export class AppComponent {
   constructor(public printService: PrintPdfService, private http: HttpClient) {}
 
   public async handleClick(): Promise<void> {
-    const headers = new HttpHeaders({ 'Content-Type': 'application/pdf' });
+    const blob = await this.http.get('assets/p.pdf', { responseType: 'blob', observe: 'body' }).toPromise();
 
-    const blob = await this.http.get('assets/f.pdf', { responseType: 'blob', observe: 'body', headers }).toPromise();
-    this.printService.printDocument(blob, {});
+    this.printService.printDocument(blob);
+  }
+
+  public async handleIEClick(path: string): Promise<void> {
+    const blob = await this.http.get(path, { responseType: 'blob', observe: 'body' }).toPromise();
+
+    (this.printService as any).printDocumentForIE(blob, {
+      iframeId: 'pdfPrintIframe',
+      printResolution: 150,
+      rotation: 0,
+      scale: 1,
+      cssUnits: 96.0 / 72.0,
+      useCanvasToDataUrl: true,
+      layout: 'portrait'
+    });
   }
 }

@@ -1,4 +1,5 @@
-import { PrintPdfInterface } from '../models';
+import { PdfPageDimensions, PrintPdfInterface } from '../models';
+import { PDFPageProxy } from 'pdfjs-dist';
 
 export const browser = {
   isIE: navigator.userAgent.indexOf('MSIE') !== -1 || !!document['documentMode'],
@@ -42,6 +43,8 @@ export function performPrint(params: PrintPdfInterface): void {
 export function createPrintFrame(params: PrintPdfInterface): HTMLIFrameElement {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('id', params.iframeId);
+  // iframe.setAttribute('height', '100%');
+  // iframe.setAttribute('width', '100%');
   hideEl(iframe);
 
   return iframe;
@@ -66,5 +69,35 @@ export function handlePrintEvents(onBefore?: () => void, onAfter?: () => void): 
   if (window.matchMedia) {
     const mediaQueryList = window.matchMedia('print');
     mediaQueryList.addListener(change => (change.matches ? onBefore && onBefore() : onAfter && onAfter()));
+  }
+}
+
+export function getDataFromCanvas(canvas: HTMLCanvasElement, useCanvasToDataUrl: boolean): Promise<string> {
+  if ('toBlob' in canvas && !useCanvasToDataUrl) {
+    return new Promise(resolve => canvas.toBlob(blob => resolve(URL.createObjectURL(blob))));
+  } else {
+    return Promise.resolve(canvas['toDataURL']());
+  }
+}
+
+export function getDimensionsAccordingToLayout(
+  page: PDFPageProxy,
+  layout: PrintPdfInterface['layout']
+): PdfPageDimensions {
+  const [_, __, pageWidth, pageHeight] = page.view;
+
+  switch (layout) {
+    case 'album': {
+      return pageWidth > pageHeight
+        ? { width: pageWidth, height: pageHeight }
+        : { width: pageHeight, height: pageWidth };
+    }
+    case 'portrait': {
+      return pageWidth < pageHeight
+        ? { width: pageWidth, height: pageHeight }
+        : { width: pageHeight, height: pageWidth };
+    }
+    default:
+      return { width: pageWidth, height: pageHeight };
   }
 }
