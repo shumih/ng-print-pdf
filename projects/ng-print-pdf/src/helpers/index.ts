@@ -5,6 +5,14 @@ export const browser = {
   isIE: navigator.userAgent.indexOf('MSIE') !== -1 || !!document['documentMode'],
 };
 
+export function deffered<T>(fn: (...args: unknown[]) => PromiseLike<T>, ...args: unknown[]): PromiseLike<T> {
+  return new Promise(resolve => {
+    requestAnimationFrame(async () => {
+      resolve(await fn(...args));
+    });
+  });
+}
+
 export function normalizeRotationProperty(rotate: number): number {
   if (rotate % 90 !== 0) {
     return 0;

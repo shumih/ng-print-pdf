@@ -1,5 +1,6 @@
 <div class="wrapper">
-  <button type="button" (click)="handleClick('assets/p.pdf')" [disabled]="printService.inProcess$ | async">PRINT</button>
-  <button type="button" (click)="handleIEClick('assets/p.pdf')" [disabled]="printService.inProcess$ | async">PRINT IE</button>
+  <button type="button" (click)="handleClick('assets/huge.pdf')" [disabled]="printService.inProcess$ | async">PRINT</button>
+  <button type="button" (click)="handleIEClick('assets/huge.pdf')" [disabled]="printService.inProcess$ | async">PRINT IE</button>
   <button type="button" (click)="handleIEClick('assets/p1.pdf')" [disabled]="printService.inProcess$ | async">PRINT IE FIRST</button>
+  <p *ngIf="printService.inProcess$ | async">...</p>
 </div>

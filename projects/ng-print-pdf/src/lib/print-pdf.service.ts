@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { getDocument } from 'pdfjs-dist';
+import {getDocument, PDFPageProxy} from 'pdfjs-dist';
 import { DEFAULT_PRINT_PDF_PARAMS, PrintPdfInterface } from '../models';
 import {
   browser,
+  deffered,
   createPrintPdfItem,
   createPrintFrame,
   performPrint,
@@ -48,15 +49,16 @@ export class PrintPdfService {
 
     for (let i = 1; i <= doc.numPages; i++) {
       const canvas = document.createElement('canvas');
-      const page = await doc.getPage(i);
+      const page = await deffered<PDFPageProxy>(doc.getPage.bind(doc), i);
+
       const dimensions = getDimensionsAccordingToLayout(page, params.layout);
-      const pdfItem = await createPrintPdfItem(page, canvas, dimensions, params);
+      const pdfItem = await deffered(createPrintPdfItem, page, canvas, dimensions, params);
       container.appendChild(pdfItem);
 
       heights.push(dimensions.height);
       widths.push(dimensions.width);
 
-      setTimeout(() => canvas.remove());
+      canvas.remove();
     }
 
     const iframe = this.getPrintFrame(params);
@@ -68,12 +70,7 @@ export class PrintPdfService {
     iframe.contentDocument.body.style.background = 'black';
     iframe.contentDocument.body.style.margin = '0';
 
-    return new Promise(resolve => {
-      setTimeout(() => {
-        performPrint(params);
-        resolve();
-      });
-    });
+    return deffered(async () => performPrint(params));
   }
 
   private printDocumentForOtherBrowsers(objectURL: string, params: PrintPdfInterface): Promise<void> {
