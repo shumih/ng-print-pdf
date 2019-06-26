@@ -92,7 +92,7 @@ export async function createPrintPdfItem(
 }
 
 export function hideEl(el: HTMLElement): void {
-  el.setAttribute('style', 'visibility: hidden; position: absolute; left: -2000px;');
+  el.setAttribute('style', 'visibility: hidden; position: absolute; left: -20000px; top: 0;');
 }
 
 export function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
