@@ -1,8 +1,8 @@
 <div class="wrapper">
-  <button type="button" (click)="handleClick('assets/huge.pdf')">
+  <button type="button" (click)="handleClick('assets/combined_rotated.pdf')">
     PRINT
   </button>
-  <button type="button" (click)="handleIEClick('assets/huge.pdf')">
+  <button type="button" (click)="handleIEClick('assets/combined_rotated.pdf')">
     PRINT IE
   </button>
   <button type="button" (click)="handleIEClick('assets/p1.pdf')">
@@ -10,5 +10,5 @@
   </button>
 </div>
 <progress *ngIf="printService.progress$ | async as progress" [value]="progress.index" [max]="progress.totalCount">{{
-  (progress.totalCount / progress.index).toFixed(2)
+  (progress.index / progress.totalCount).toFixed(2)
 }}</progress>

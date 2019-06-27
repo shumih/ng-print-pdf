@@ -5,10 +5,10 @@ export interface PrintPdfInterface {
   scale: number;
   cssUnits: number;
   useCanvasToDataUrl: boolean;
-  layout?: 'portrait' | 'landscape';
+  layout: 'portrait' | 'landscape' | 'none' | 'fixed';
 }
 
-export interface PdfPageDimensions {
+export interface PdfPageDimension {
   width: number;
   height: number;
 }

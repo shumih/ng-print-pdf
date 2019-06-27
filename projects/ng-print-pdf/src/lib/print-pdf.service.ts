@@ -2,16 +2,17 @@ import { Observable, of, Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { getDocument, PDFPageProxy } from 'pdfjs-dist';
-import { DEFAULT_PRINT_PDF_PARAMS, PrintPdfInterface, PdfPrintProgressEvent } from '../models';
+import { DEFAULT_PRINT_PDF_PARAMS, PrintPdfInterface, PdfPrintProgressEvent, PdfPageDimension } from '../models';
 import {
   browser,
   deffer,
   createPrintPdfItem,
   createPrintFrame,
+  createPrintCanvas,
   performPrint,
   getPrintPageStyleSheet,
   blobToArrayBuffer,
-  getDimensionsAccordingToLayout,
+  getDimensionAccordingToLayout,
 } from '../helpers';
 
 @Injectable()
@@ -39,20 +40,17 @@ export class PrintPdfService {
     const doc = await getDocument(data).promise;
     const container = document.createElement('div');
 
-    const heights: number[] = [];
-    const widths: number[] = [];
+    const dimensions: PdfPageDimension[] = [];
     const totalCount = doc.numPages;
 
     for (let i = 1; i <= totalCount; i++) {
-      const canvas = document.createElement('canvas');
+      const canvas = createPrintCanvas();
       const page = await deffer<PDFPageProxy>(doc.getPage.bind(doc), i);
 
-      const dimensions = getDimensionsAccordingToLayout(page, params.layout);
+      dimensions.push(getDimensionAccordingToLayout(page, dimensions[0], params.layout));
       const pdfItem = await deffer(createPrintPdfItem, page, canvas, dimensions, params);
       container.appendChild(pdfItem);
 
-      heights.push(dimensions.height);
-      widths.push(dimensions.width);
       this.progressSubject.next({ index: i, totalCount });
 
       canvas.remove();
@@ -61,7 +59,10 @@ export class PrintPdfService {
     const iframe = this.getPrintFrame(params);
     document.body.appendChild(iframe);
 
-    this.pageStyleSheet = getPrintPageStyleSheet(Math.max(...widths), Math.max(...heights));
+    this.pageStyleSheet = getPrintPageStyleSheet(
+      Math.max(...dimensions.map(d => d.width)),
+      Math.max(...dimensions.map(d => d.height))
+    );
     iframe.contentWindow.document.body.appendChild(this.pageStyleSheet);
     iframe.contentWindow.document.body.appendChild(container);
     iframe.contentDocument.body.style.background = 'black';
