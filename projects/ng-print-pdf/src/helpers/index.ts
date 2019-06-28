@@ -18,14 +18,20 @@ export function deffer<T>(fn: (...args: unknown[]) => PromiseLike<T>, ...args: u
   });
 }
 
-export function normalizeRotationProperty(rotate: number): number {
-  if (rotate % 90 !== 0) {
-    return 0;
-  } else if (rotate >= 360) {
-    return rotate % 360;
-  } else if (rotate < 0) {
-    return ((rotate % 360) + 360) % 360;
+export function normalizeRotationProperty(rotation: number, dimension: PdfPageDimension): number {
+  let value: number;
+
+  if (rotation % 90 !== 0) {
+    value = 0;
+  } else if (rotation >= 360) {
+    value = rotation % 360;
+  } else if (rotation < 0) {
+    value = ((rotation % 360) + 360) % 360;
+  } else {
+    value = rotation;
   }
+
+  return dimension.reverted ? value + 90 : value;
 }
 
 export function getScaleFactor(dimensions: PdfPageDimension[]): number {
@@ -37,7 +43,7 @@ export function getScaleFactor(dimensions: PdfPageDimension[]): number {
   const maxScaleFactor = Math.max(widthFactor, heightFactor);
   const minScaleFactor = Math.min(widthFactor, heightFactor);
 
-  return minScaleFactor < 1 ? minScaleFactor : maxScaleFactor;
+  return (minScaleFactor < 1 ? minScaleFactor : maxScaleFactor);
 }
 
 export function getPrintPageStyleSheet(pageWidth: number, pageHeight: number): HTMLStyleElement {
@@ -91,15 +97,15 @@ export async function createPrintPdfItem(
   page: PDFPageProxy,
   canvas: HTMLCanvasElement,
   dimensions: PdfPageDimension[],
-  { useCanvasToDataUrl, cssUnits, printResolution, rotation, scale }: PrintPdfInterface
+  params: PrintPdfInterface
 ): Promise<HTMLDivElement> {
+  const { useCanvasToDataUrl, cssUnits, printResolution, scale, rotation } = params
   const printUnits = printResolution / 72.0;
-
   const current = last(dimensions);
-  const scaleFactor = getScaleFactor(dimensions);
+  const viewport = page.getViewport(scale, normalizeRotationProperty(rotation, current));
 
-  canvas.width = Math.floor(current.width * printUnits);
-  canvas.height = Math.floor(current.height * printUnits);
+  canvas.width = Math.floor(viewport.width * printUnits);
+  canvas.height = Math.floor(viewport.height * printUnits);
 
   const ctx = canvas.getContext('2d');
   ctx.save();
@@ -110,17 +116,23 @@ export async function createPrintPdfItem(
   const renderContext = {
     canvasContext: ctx,
     transform: [printUnits, 0, 0, printUnits, 0, 0],
-    viewport: page.getViewport(scaleFactor * scale, normalizeRotationProperty(rotation)),
+    viewport,
     intent: 'print',
   };
 
   await deffer<PDFPageProxy>(async () => await page.render(renderContext).promise);
 
   const wrapper = document.createElement('div');
+  const url = await getDataFromCanvas(canvas, useCanvasToDataUrl);
   const img = document.createElement('img');
-  img.setAttribute('width', Math.floor(current.width * cssUnits * ( 1 / scaleFactor)) + 'px');
-  img.setAttribute('height', Math.floor(current.height * cssUnits * ( 1 / scaleFactor)) + 'px');
-  img.setAttribute('src', await getDataFromCanvas(canvas, useCanvasToDataUrl));
+
+  if (browser.isIE) {
+    img.setAttribute('width', 596 + 'px');
+    img.setAttribute('height', 843 + 'px');
+  } else {
+    img.setAttribute('width', Math.floor(current.width * cssUnits) + 'px');
+    img.setAttribute('height', Math.floor(current.height * cssUnits) + 'px');
+  }
   img.setAttribute('style', 'margin: 0; padding: 0; display: block;');
 
   wrapper.setAttribute(
@@ -137,7 +149,10 @@ export async function createPrintPdfItem(
   );
   wrapper.appendChild(img);
 
-  await new Promise(resolve => (img.onload = resolve));
+  await new Promise(resolve => {
+    img.onload = resolve;
+    img.setAttribute('src', url);
+  }).then(() => URL.revokeObjectURL(url));
 
   return wrapper;
 }
@@ -158,8 +173,14 @@ export function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
 }
 
 export function getDataFromCanvas(canvas: HTMLCanvasElement, useCanvasToDataUrl: boolean): Promise<string> {
-  if ('toBlob' in canvas && !useCanvasToDataUrl) {
-    return new Promise(resolve => canvas.toBlob(blob => resolve(URL.createObjectURL(blob))));
+  const supportToBlob = browser.isIE ? 'msToBlob' in canvas : 'toBlob' in canvas;
+
+  if (supportToBlob && !useCanvasToDataUrl) {
+    return new Promise(resolve =>
+      browser.isIE
+        ? resolve(URL.createObjectURL(canvas['msToBlob']()))
+        : canvas.toBlob(blob => resolve(URL.createObjectURL(blob)))
+    );
   } else {
     return Promise.resolve(canvas['toDataURL']());
   }
@@ -172,8 +193,8 @@ export function getDimensionAccordingToLayout(
 ): PdfPageDimension {
   const [_, __, pageWidth, pageHeight] = page.view;
 
-  const initial = { width: pageWidth, height: pageHeight };
-  const reverted = { width: pageHeight, height: pageWidth };
+  const initial = { width: pageWidth, height: pageHeight, reverted: false };
+  const reverted = { width: pageHeight, height: pageWidth, reverted: true };
   const isLandscape = pageWidth > pageHeight;
 
   switch (layout) {

@@ -21,9 +21,9 @@ export class AppComponent {
 
     (this.printService as any).printDocumentForIEorFirefox(blob, {
       iframeId: 'pdfPrintIframe',
-      printResolution: 150,
+      printResolution: 100,
       rotation: 0,
-      scale: 1,
+      scale: 1.1,
       cssUnits: 96.0 / 72.0,
       useCanvasToDataUrl: true,
       layout: 'portrait'

@@ -11,6 +11,7 @@ export interface PrintPdfInterface {
 export interface PdfPageDimension {
   width: number;
   height: number;
+  reverted: boolean;
 }
 
 export interface PdfPrintProgressEvent {

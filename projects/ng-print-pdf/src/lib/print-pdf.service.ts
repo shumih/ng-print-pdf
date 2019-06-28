@@ -38,7 +38,12 @@ export class PrintPdfService {
   private async printDocumentForIEorFirefox(blob: Blob, params: PrintPdfInterface): Promise<void> {
     const data = (await blobToArrayBuffer(blob)) as any;
     const doc = await getDocument(data).promise;
+    const iframe = this.getPrintFrame(params);
     const container = document.createElement('div');
+    document.body.appendChild(iframe);
+
+    iframe.contentDocument.body.style.background = 'black';
+    iframe.contentDocument.body.style.margin = '0';
 
     const dimensions: PdfPageDimension[] = [];
     const totalCount = doc.numPages;
@@ -56,17 +61,13 @@ export class PrintPdfService {
       canvas.remove();
     }
 
-    const iframe = this.getPrintFrame(params);
-    document.body.appendChild(iframe);
-
     this.pageStyleSheet = getPrintPageStyleSheet(
       Math.max(...dimensions.map(d => d.width)),
       Math.max(...dimensions.map(d => d.height))
     );
-    iframe.contentWindow.document.body.appendChild(this.pageStyleSheet);
-    iframe.contentWindow.document.body.appendChild(container);
-    iframe.contentDocument.body.style.background = 'black';
-    iframe.contentDocument.body.style.margin = '0';
+
+    iframe.contentDocument.body.appendChild(this.pageStyleSheet);
+    iframe.contentDocument.body.appendChild(container);
 
     return deffer(async () => performPrint(params));
   }
