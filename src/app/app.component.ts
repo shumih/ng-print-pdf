@@ -29,4 +29,12 @@ export class AppComponent {
       layout: 'portrait'
     });
   }
+
+  public async getPagesCount(path: string): Promise<void> {
+    const blob = await this.http.get(path, { responseType: 'blob', observe: 'body' }).toPromise();
+
+    const pages = await this.printService.getPagesCount(blob);
+
+    alert(pages);
+  }
 }

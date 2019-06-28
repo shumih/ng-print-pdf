@@ -23,6 +23,13 @@ export class PrintPdfService {
 
   private progressSubject: Subject<PdfPrintProgressEvent> = new Subject();
 
+  public async getPagesCount(blob: Blob): Promise<number> {
+    const data = (await blobToArrayBuffer(blob)) as any;
+    const doc = await getDocument(data).promise;
+
+    return doc.numPages;
+  }
+
   public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
 

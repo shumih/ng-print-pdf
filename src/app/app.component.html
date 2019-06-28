@@ -8,6 +8,9 @@
   <button type="button" (click)="handleIEClick('assets/p1.pdf')">
     PRINT IE FIRST
   </button>
+  <button type="button" (click)="getPagesCount('assets/manual.pdf')">
+    PAGES COUNT
+  </button>
 </div>
 <progress *ngIf="printService.progress$ | async as progress" [value]="progress.index" [max]="progress.totalCount">{{
   (progress.index / progress.totalCount).toFixed(2)
