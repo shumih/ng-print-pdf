@@ -26,8 +26,8 @@ export class PrintPdfService {
   public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
 
-    if (browser.isIE) {
-      await this.printDocumentForIE(blob, params);
+    if (browser.isIE || browser.isFirefox) {
+      await this.printDocumentForIEorFirefox(blob, params);
     } else {
       const objectURL = URL.createObjectURL(blob);
 
@@ -35,7 +35,7 @@ export class PrintPdfService {
     }
   }
 
-  private async printDocumentForIE(blob: Blob, params: PrintPdfInterface): Promise<void> {
+  private async printDocumentForIEorFirefox(blob: Blob, params: PrintPdfInterface): Promise<void> {
     const data = (await blobToArrayBuffer(blob)) as any;
     const doc = await getDocument(data).promise;
     const container = document.createElement('div');

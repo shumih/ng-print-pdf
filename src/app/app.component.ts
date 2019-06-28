@@ -19,7 +19,7 @@ export class AppComponent {
   public async handleIEClick(path: string): Promise<void> {
     const blob = await this.http.get(path, { responseType: 'blob', observe: 'body' }).toPromise();
 
-    (this.printService as any).printDocumentForIE(blob, {
+    (this.printService as any).printDocumentForIEorFirefox(blob, {
       iframeId: 'pdfPrintIframe',
       printResolution: 150,
       rotation: 0,

@@ -3,6 +3,7 @@ import { PDFPageProxy } from 'pdfjs-dist';
 
 export const browser = {
   isIE: navigator.userAgent.indexOf('MSIE') !== -1 || !!document['documentMode'],
+  isFirefox: typeof window['InstallTrigger'] !== 'undefined',
 };
 
 export function last<T>(array: T[]): T {
