@@ -6,6 +6,37 @@ export const browser = {
   isFirefox: typeof window['InstallTrigger'] !== 'undefined',
 };
 
+export function getPrintPageStyleSheet(pageWidth: number, pageHeight: number): HTMLStyleElement {
+  const pageStyleSheet = document.createElement('style');
+
+  pageStyleSheet.textContent += `
+    @supports ((size:A4) and (size:1pt 1pt)) {
+      @page { size: ${pageWidth}pt ${pageHeight}pt;}
+    };
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    img {
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      display: block;
+     }
+    .wrapper {
+      position: relative;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      overflow: visible;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }`;
+
+  return pageStyleSheet;
+}
+
 export function last<T>(array: T[]): T {
   return array[array.length - 1];
 }
@@ -32,33 +63,6 @@ export function normalizeRotationProperty(rotation: number, dimension: PdfPageDi
   }
 
   return dimension.reverted ? value + 90 : value;
-}
-
-export function getScaleFactor(dimensions: PdfPageDimension[]): number {
-  const first = dimensions[0];
-  const current = last(dimensions);
-
-  const widthFactor = first.width / current.width;
-  const heightFactor = first.height / current.height;
-  const maxScaleFactor = Math.max(widthFactor, heightFactor);
-  const minScaleFactor = Math.min(widthFactor, heightFactor);
-
-  return (minScaleFactor < 1 ? minScaleFactor : maxScaleFactor);
-}
-
-export function getPrintPageStyleSheet(pageWidth: number, pageHeight: number): HTMLStyleElement {
-  const pageStyleSheet = document.createElement('style');
-
-  pageStyleSheet.textContent += `
-    @supports ((size:A4) and (size:1pt 1pt)) {
-      @page { size: ${pageWidth}pt ${pageHeight}pt;}
-    };
-    * {
-      margin: 0;
-      padding: 0;
-    }`;
-
-  return pageStyleSheet;
 }
 
 export function performPrint(params: PrintPdfInterface): void {
@@ -99,7 +103,7 @@ export async function createPrintPdfItem(
   dimensions: PdfPageDimension[],
   params: PrintPdfInterface
 ): Promise<HTMLDivElement> {
-  const { useCanvasToDataUrl, cssUnits, printResolution, scale, rotation } = params
+  const { useCanvasToDataUrl, cssUnits, printResolution, scale, rotation } = params;
   const printUnits = printResolution / 72.0;
   const current = last(dimensions);
   const viewport = page.getViewport(scale, normalizeRotationProperty(rotation, current));
@@ -126,27 +130,10 @@ export async function createPrintPdfItem(
   const url = await getDataFromCanvas(canvas, useCanvasToDataUrl);
   const img = document.createElement('img');
 
-  if (browser.isIE) {
-    img.setAttribute('width', 596 + 'px');
-    img.setAttribute('height', 843 + 'px');
-  } else {
-    img.setAttribute('width', Math.floor(current.width * cssUnits) + 'px');
-    img.setAttribute('height', Math.floor(current.height * cssUnits) + 'px');
-  }
-  img.setAttribute('style', 'margin: 0; padding: 0; display: block;');
+  img.setAttribute('width', Math.floor(current.width * cssUnits) + 'px');
+  img.setAttribute('height', Math.floor(current.height * cssUnits) + 'px');
 
-  wrapper.setAttribute(
-    'style',
-    `
-    position: relative;
-    top: 0;
-    left: 0;
-    width: 1px;
-    height: 1px;
-    overflow: visible;
-    page-break-after: always;
-    page-break-inside: avoid;`
-  );
+  wrapper.setAttribute('class', 'wrapper');
   wrapper.appendChild(img);
 
   await new Promise(resolve => {

@@ -1,9 +1,9 @@
 {
   "name": "ng-print-pdf",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "peerDependencies": {
-    "@angular/common": "^7.2.0",
-    "@angular/core": "^7.2.0",
+    "@angular/common": "~8.2.14",
+    "@angular/core": "~8.2.14",
     "pdfjs-dist": "^2.0.943"
   },
   "devDependencies": {

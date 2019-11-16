@@ -56,6 +56,9 @@
                   "maximumError": "5mb"
                 }
               ]
+            },
+            "es5": {
+              "tsConfig": "./src/tsconfig.es5.json"
             }
           }
         },
@@ -67,6 +70,9 @@
           "configurations": {
             "production": {
               "browserTarget": "ng-print-pdf-example:build:production"
+            },
+            "es5": {
+              "browserTarget": "ng-print-pdf-example:build:es5"
             }
           }
         },

@@ -21,11 +21,11 @@ export class AppComponent {
 
     (this.printService as any).printDocumentForIEorFirefox(blob, {
       iframeId: 'pdfPrintIframe',
-      printResolution: 100,
+      printResolution: 144,
       rotation: 0,
-      scale: 1.1,
-      cssUnits: 96.0 / 72.0,
-      useCanvasToDataUrl: true,
+      scale: 1,
+      cssUnits: 78.0 / 72.0,
+      useCanvasToDataUrl: false,
       layout: 'portrait'
     });
   }

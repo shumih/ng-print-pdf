@@ -10,10 +10,8 @@
     "inlineSources": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "skipLibCheck": true,
     "importHelpers": true,
-    "types": [
-      "src/index.d.ts"
-    ],
     "lib": [
       "dom",
       "es2018"
@@ -25,7 +23,7 @@
     "strictMetadataEmit": true,
     "fullTemplateTypeCheck": true,
     "strictInjectionParameters": true,
-    "enableResourceInlining": true,
+    "enableResourceInlining": true
   },
   "exclude": [
     "src/test.ts",
