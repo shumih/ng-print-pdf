@@ -32,6 +32,7 @@ export class PrintPdfService {
 
   public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
+    blob = blob.slice(0, blob.size, 'application/pdf');
 
     if (browser.isIE || browser.isFirefox) {
       await this.printDocumentForIEorFirefox(blob, params);
