@@ -30,14 +30,21 @@ export class PrintPdfService {
     return doc.numPages;
   }
 
-  public async printDocument(blob: Blob, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
+  public async printDocument(
+    blobOrObjectURL: Blob | string,
+    externalParams: Partial<PrintPdfInterface> = {}
+  ): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
-    blob = blob.slice(0, blob.size, 'application/pdf');
 
-    if (browser.isIE || browser.isFirefox) {
+    let blob: Blob | null = null;
+    if (blobOrObjectURL instanceof Blob) {
+      blob = blobOrObjectURL.slice(0, blobOrObjectURL.size, 'application/pdf');
+    }
+
+    if (browser.isIE || (browser.isFirefox && blob)) {
       await this.printDocumentForIEorFirefox(blob, params);
     } else {
-      const objectURL = URL.createObjectURL(blob);
+      const objectURL = URL.createObjectURL(blobOrObjectURL);
 
       await this.printDocumentForOtherBrowsers(objectURL, params);
     }
