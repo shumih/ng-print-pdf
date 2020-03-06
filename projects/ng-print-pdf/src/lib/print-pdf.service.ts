@@ -44,7 +44,7 @@ export class PrintPdfService {
     if (browser.isIE || (browser.isFirefox && blob)) {
       await this.printDocumentForIEorFirefox(blob, params);
     } else {
-      const objectURL = URL.createObjectURL(blobOrObjectURL);
+      const objectURL = URL.createObjectURL(blob);
 
       await this.printDocumentForOtherBrowsers(objectURL, params);
     }
