@@ -13,6 +13,7 @@ import {
   getPrintPageStyleSheet,
   blobToArrayBuffer,
   getDimensionAccordingToLayout,
+  getDataFromCanvas,
 } from '../helpers';
 
 @Injectable()
@@ -48,6 +49,45 @@ export class PrintPdfService {
 
       await this.printDocumentForOtherBrowsers(objectURL, params);
     }
+  }
+
+  public async printCanvas(canvas: HTMLCanvasElement, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
+    const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
+    const iframe = this.getPrintFrame(params);
+    const container = document.createElement('div');
+    document.body.appendChild(iframe);
+
+    iframe.contentDocument.body.style.background = 'black';
+    iframe.contentDocument.body.style.margin = '0';
+
+    const width = canvas.style.width ? parseInt(canvas.style.width, 10) : canvas.width;
+    const height = canvas.style.height ? parseInt(canvas.style.height, 10) : canvas.height;
+    const dimension = { width, height, reverted: false };
+    const wrapper = document.createElement('div');
+    const url = await getDataFromCanvas(canvas, params.useCanvasToDataUrl);
+    const img = document.createElement('img');
+
+    img.setAttribute('width', Math.floor(width * params.cssUnits) + 'px');
+    img.setAttribute('height', Math.floor(height * params.cssUnits) + 'px');
+
+    wrapper.setAttribute('class', 'wrapper');
+    wrapper.appendChild(img);
+
+    await new Promise(resolve => {
+      img.onload = resolve;
+      img.setAttribute('src', url);
+    }).then(() => URL.revokeObjectURL(url));
+
+    container.appendChild(wrapper);
+
+    this.progressSubject.next({ index: 0, totalCount: 1 });
+
+    canvas.remove();
+
+    iframe.contentDocument.head.appendChild(getPrintPageStyleSheet(dimension.width, dimension.height));
+    iframe.contentDocument.body.appendChild(container);
+
+    return deffer(async () => performPrint(params));
   }
 
   private async printDocumentForIEorFirefox(blob: Blob, params: PrintPdfInterface): Promise<void> {

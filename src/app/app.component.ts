@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef } from '@angular/core';
 import { PrintPdfService } from '../../projects/ng-print-pdf/src/lib/print-pdf.service';
 import { HttpClient } from '@angular/common/http';
+import html2canvas from 'html2canvas';
 
 @Component({
   selector: 'app-root',
@@ -26,7 +27,7 @@ export class AppComponent {
       scale: 1,
       cssUnits: 78.0 / 72.0,
       useCanvasToDataUrl: false,
-      layout: 'portrait'
+      layout: 'portrait',
     });
   }
 
@@ -36,5 +37,26 @@ export class AppComponent {
     const pages = await this.printService.getPagesCount(blob);
 
     alert(pages);
+  }
+
+  public async handleCanvasClick(el: HTMLElement) {
+    const clonedEl = el.cloneNode(true) as HTMLElement;
+    clonedEl.setAttribute(
+      'style',
+      'position: absolute; left: -20000px; top: 0px; width: 21cm; margin: 27mm 16mm 27mm 16mm;'
+    );
+    document.body.appendChild(clonedEl);
+
+    const canvas = await html2canvas(clonedEl, { scale: 2 });
+
+    this.printService.printCanvas(canvas, {
+      iframeId: 'pdfPrintIframe',
+      printResolution: 300,
+      rotation: 0,
+      scale: 1,
+      cssUnits: 96.0 / 72.0,
+      useCanvasToDataUrl: true,
+      layout: 'none',
+    });
   }
 }
