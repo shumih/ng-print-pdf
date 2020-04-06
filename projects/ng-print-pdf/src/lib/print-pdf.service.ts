@@ -146,14 +146,10 @@ export class PrintPdfService {
   private getPrintFrame(params: PrintPdfInterface): HTMLIFrameElement {
     const existedPrintFrame = document.getElementById(params.iframeId) as HTMLIFrameElement | null;
 
-    if (!existedPrintFrame) {
-      return createPrintFrame(params);
+    if (existedPrintFrame) {
+      existedPrintFrame.remove();
     }
 
-    existedPrintFrame.innerHTML = '';
-    existedPrintFrame.onload = null;
-    existedPrintFrame.setAttribute('src', null);
-
-    return existedPrintFrame;
+    return createPrintFrame(params);
   }
 }
