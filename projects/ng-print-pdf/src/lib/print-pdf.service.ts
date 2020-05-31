@@ -16,7 +16,9 @@ import {
   getDataFromCanvas,
 } from '../helpers';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class PrintPdfService {
   private pageStyleSheet: HTMLStyleElement | null = null;
 

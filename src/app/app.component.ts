@@ -1,4 +1,4 @@
-import { Component, ElementRef } from '@angular/core';
+import { Component } from '@angular/core';
 import { PrintPdfService } from '../../projects/ng-print-pdf/src/lib/print-pdf.service';
 import { HttpClient } from '@angular/common/http';
 import html2canvas from 'html2canvas';
