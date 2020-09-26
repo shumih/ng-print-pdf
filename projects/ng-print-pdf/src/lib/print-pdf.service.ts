@@ -53,7 +53,10 @@ export class PrintPdfService {
     }
   }
 
-  public async printCanvas(canvas: HTMLCanvasElement, externalParams: Partial<PrintPdfInterface> = {}): Promise<void> {
+  public async printCanvas(
+    canvases: HTMLCanvasElement[],
+    externalParams: Partial<PrintPdfInterface> = {}
+  ): Promise<void> {
     const params: PrintPdfInterface = { ...DEFAULT_PRINT_PDF_PARAMS, ...externalParams };
     const iframe = this.getPrintFrame(params);
     const container = document.createElement('div');
@@ -62,29 +65,38 @@ export class PrintPdfService {
     iframe.contentDocument.body.style.background = 'black';
     iframe.contentDocument.body.style.margin = '0';
 
-    const width = canvas.style.width ? parseInt(canvas.style.width, 10) : canvas.width;
-    const height = canvas.style.height ? parseInt(canvas.style.height, 10) : canvas.height;
+    const width = Math.max(
+      ...canvases.map(canvas => (canvas.style.width ? parseInt(canvas.style.width, 10) : canvas.width))
+    );
+    const height = Math.max(
+      ...canvases.map(canvas => (canvas.style.height ? parseInt(canvas.style.height, 10) : canvas.height))
+    );
     const dimension = { width, height, reverted: false };
-    const wrapper = document.createElement('div');
-    const url = await getDataFromCanvas(canvas, params.useCanvasToDataUrl);
-    const img = document.createElement('img');
 
-    img.setAttribute('width', Math.floor(width * params.cssUnits) + 'px');
-    img.setAttribute('height', Math.floor(height * params.cssUnits) + 'px');
+    for (const canvas of canvases) {
+      const wrapper = document.createElement('div');
+      const url = await getDataFromCanvas(canvas, params.useCanvasToDataUrl);
+      const img = document.createElement('img');
 
-    wrapper.setAttribute('class', 'wrapper');
-    wrapper.appendChild(img);
+      img.setAttribute('width', Math.floor(width * params.cssUnits) + 'px');
+      img.setAttribute('height', Math.floor(height * params.cssUnits) + 'px');
 
-    await new Promise(resolve => {
-      img.onload = resolve;
-      img.setAttribute('src', url);
-    }).then(() => URL.revokeObjectURL(url));
+      wrapper.setAttribute('class', 'wrapper');
+      wrapper.appendChild(img);
 
-    container.appendChild(wrapper);
+      await new Promise(resolve => {
+        img.onload = resolve;
+        img.setAttribute('src', url);
+      }).then(() => URL.revokeObjectURL(url));
+
+      container.appendChild(wrapper);
+    }
 
     this.progressSubject.next({ index: 0, totalCount: 1 });
 
-    canvas.remove();
+    for (const canvas of canvases) {
+      canvas.remove();
+    }
 
     iframe.contentDocument.head.appendChild(getPrintPageStyleSheet(dimension.width, dimension.height));
     iframe.contentDocument.body.appendChild(container);
